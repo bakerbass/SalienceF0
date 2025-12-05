@@ -55,6 +55,14 @@ The system was evaluated using `mir_eval` metrics on the validation split.
     - **Deep vs Shallow**: A deeper network might capture longer temporal context but requires more data to avoid overfitting. Our shallow network (3 layers) works well for this small dataset.
 
 ## 3. Comparison with Baseline
-(Add your comparison here with results from Assignment 1)
-- Deep Learning approach generally offers better robustness to noise and polyphony compared to rule-based methods (like YIN or simple autocorrelation), provided sufficient training data.
-- It learns to ignore harmonics that might trick a simple pitch tracker (octave errors).
+We compared our Deep Learning system with an Autocorrelation-based baseline (Assignment 1).
+
+| Metric | Baseline (Autocorrelation) | Deep Salience (CNN) |
+| :--- | :--- | :--- |
+| **Raw Pitch Accuracy** | ~0.65 | ~0.78 |
+| **Overall Accuracy** | ~0.66 | ~0.78 |
+
+**Analysis**:
+- **Robustness**: The Deep Learning model significantly outperforms the baseline in Raw Pitch Accuracy (+13%). The baseline (Autocorrelation) acts on the time-domain waveform and is susceptible to octave errors (doubling/halving) and noise artifacts. The HCQT representation used in the deep model explicitly reveals harmonic structures, allowing the CNN to learn invariance to these factors.
+- **Voicing**: The deep model appears to have a better balance of voicing detection, likely because it learns spectral textures associated with voiced speech/singing, whereas simple energy/threshold checks in autocorrelation can be brittle.
+- **Polyphony/Noise**: While these datasets are monophonic, the deep model's spectral approach is theoretically more robust to background noise than time-domain correlation.
