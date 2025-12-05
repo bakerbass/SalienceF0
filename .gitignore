@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+
+# Dataset
+trainData/
+Data.zip
+
+# Models
+*.pth
+
+# Environments
+classdemo/
+.venv/
+env/
+
+# IDE/System
+.DS_Store
+.vscode/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Outputs
+results.txt

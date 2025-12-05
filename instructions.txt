@@ -1,0 +1,18 @@
+# Class Demo Environment Setup
+
+## 1. Create and activate virtual environment
+
+```bash
+2. python -m venv classdemo
+
+3. source classdemo/bin/activate
+
+4. pip install --upgrade pip setuptools wheel
+
+5. pip install -r requirements.txt
+
+6. python -m ipykernel install --user --name classdemo --display-name "CNN_demo"
+
+7. jupyter-notebook
+
+Ensure your kernel is CNN_demo 
