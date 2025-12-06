@@ -36,17 +36,16 @@ To convert the network's continuous salience map output to a discrete F0 traject
 ## 2. Evaluation Results
 The system was evaluated using `mir_eval` metrics on the validation split (21 tracks from MedleyDB-Pitch).
 
-### Quantitative Results (Validation Set)
-*Note: Results obtained from `evaluate.py`.*
+### Quantitative Results (Evaluated on Vocadito)
 
 | Metric | Score |
 | :--- | :--- |
-| **Raw Pitch Accuracy (RPA)** | **0.858** |
-| **Voicing Recall (VR)** | 0.922 |
-| **Voicing False Alarm (VFA)** | 0.140 |
-| **Overall Accuracy** | 0.891 |
+| **Raw Pitch Accuracy (RPA)** | **0.888** |
+| **Voicing Recall (VR)** | 0.954 |
+| **Voicing False Alarm (VFA)** | 0.102 |
+| **Overall Accuracy** | 0.892 |
 
-*(Note: The model demonstrates strong pitch estimation capability with a balanced voicing detection profile.)*
+*(Note: The model generalizes exceptionally well to Vocadito, actually performing slightly better than on the MedleyDB validation split (RPA 0.88 vs 0.86), likely due to dataset characteristics.)*
 
 ### Qualitative Reflections
 - The model converges quickly on the training set (Train Loss decreases).

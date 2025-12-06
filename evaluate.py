@@ -78,17 +78,35 @@ def evaluate(args):
     for wav_path in wav_files:
         basename = os.path.splitext(os.path.basename(wav_path))[0]
         
-        # Strategy: look for 'pitch' directory parallel to 'audio' dir
+        # Check for multiple possible structures
+        
+        # 1. MedleyDB-Pitch Style: .../audio/name.wav -> .../pitch/name.csv
         parent_dir = os.path.dirname(wav_path) # .../audio
+        grandparent = os.path.dirname(parent_dir)
+        
+        # Path candidates
+        candidates = []
+        
+        # Candidate 1: MedleyDB-Pitch
         if os.path.basename(parent_dir) == 'audio':
-            grandparent = os.path.dirname(parent_dir)
-            pitch_dir = os.path.join(grandparent, 'pitch')
-            f0_path = os.path.join(pitch_dir, basename + ".csv")
-        else:
-            # Fallback
-            f0_path = os.path.join(parent_dir, basename + ".csv")
+            candidates.append(os.path.join(grandparent, 'pitch', basename + ".csv"))
             
-        if os.path.exists(f0_path):
+        # Candidate 2: Vocadito: .../Audio/name.wav -> .../Annotations/F0/name_f0.csv
+        if os.path.basename(parent_dir) == 'Audio':
+            # ../Annotations/F0
+            candidates.append(os.path.join(grandparent, 'Annotations', 'F0', basename + "_f0.csv"))
+            
+        # Candidate 3: Same dir (fallback)
+        candidates.append(os.path.join(parent_dir, basename + ".csv"))
+        candidates.append(os.path.join(parent_dir, basename + "_f0.csv"))
+        
+        f0_path = None
+        for c in candidates:
+            if os.path.exists(c):
+                f0_path = c
+                break
+                
+        if f0_path:
             paired_files.append((wav_path, f0_path))
             
     # Deterministic split to match training
