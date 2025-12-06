@@ -67,12 +67,27 @@ def evaluate(args):
     
     # Find files (Validation set logic or all)
     # We mimic the split logic to find validation files if requested
-    wav_files = sorted(glob.glob(os.path.join(args.data_dir, "*.wav")))
+    # Find files (Validation set logic or all)
+    # We mimic the split logic to find validation files if requested
+    # Support new directory structure: audio/*.wav and pitch/*.csv
+    
+    search_path = os.path.join(args.data_dir, "**", "*.wav")
+    wav_files = sorted(glob.glob(search_path, recursive=True))
     paired_files = []
     
     for wav_path in wav_files:
         basename = os.path.splitext(os.path.basename(wav_path))[0]
-        f0_path = os.path.join(args.data_dir, basename + ".f0.Corrected.txt")
+        
+        # Strategy: look for 'pitch' directory parallel to 'audio' dir
+        parent_dir = os.path.dirname(wav_path) # .../audio
+        if os.path.basename(parent_dir) == 'audio':
+            grandparent = os.path.dirname(parent_dir)
+            pitch_dir = os.path.join(grandparent, 'pitch')
+            f0_path = os.path.join(pitch_dir, basename + ".csv")
+        else:
+            # Fallback
+            f0_path = os.path.join(parent_dir, basename + ".csv")
+            
         if os.path.exists(f0_path):
             paired_files.append((wav_path, f0_path))
             

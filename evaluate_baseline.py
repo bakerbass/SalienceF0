@@ -114,22 +114,41 @@ def estimate_f0(audio_frame, sr, minfreq=20, maxfreq=None, threshold=0.25):
 # --- Evaluation Loop ---
 
 def load_f0_file(path):
+    """Loads F0 file. Column 0: time, Column 1: F0 (Hz). 0 means unvoiced."""
     if not os.path.exists(path):
         return None, None
-    data = np.loadtxt(path)
+    try:
+        data = np.loadtxt(path, delimiter=',')
+    except ValueError:
+        return None, None
+        
+    if data.ndim == 1:
+        data = data.reshape(-1, 2)
+        
     times = data[:, 0]
-    f0_hz = data[:, 2]
+    f0_hz = data[:, 1]
     return times, f0_hz
 
 def evaluate_baseline(args):
     # Find paired files
-    wav_files = sorted(glob.glob(os.path.join(args.data_dir, "*.wav")))
+    # Find paired files
+    search_path = os.path.join(args.data_dir, "**", "*.wav")
+    wav_files = sorted(glob.glob(search_path, recursive=True))
     paired_files = []
     
     for wav_path in wav_files:
         basename = os.path.splitext(os.path.basename(wav_path))[0]
-        # Adjust extension if needed based on data folder structure
-        f0_path = os.path.join(args.data_dir, basename + ".f0.Corrected.txt")
+        
+        # Strategy: look for 'pitch' directory parallel to 'audio' dir
+        parent_dir = os.path.dirname(wav_path) # .../audio
+        if os.path.basename(parent_dir) == 'audio':
+            grandparent = os.path.dirname(parent_dir)
+            pitch_dir = os.path.join(grandparent, 'pitch')
+            f0_path = os.path.join(pitch_dir, basename + ".csv")
+        else:
+            # Fallback
+            f0_path = os.path.join(parent_dir, basename + ".csv")
+            
         if os.path.exists(f0_path):
             paired_files.append((wav_path, f0_path))
             

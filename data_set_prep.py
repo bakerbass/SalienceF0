@@ -69,6 +69,11 @@ def compute_hcqt(y, sr, harmonics=HARMONICS, bins_per_octave=BINS_PER_OCTAVE, n_
 
     # Stack: (H, F, T) -> Transpose to (H, T, F) if preferred, but usually (H, T, F) or (H, F, T) conventions vary.
     # The demo notebook produced (H, T, F). Librosa produces (F, T).
+    
+    # Check for shape mismatches in Time dimension
+    min_t = min([c.shape[1] for c in hcqt_list])
+    hcqt_list = [c[:, :min_t] for c in hcqt_list]
+    
     # So we stack to (H, F, T) then transpose.
     hcqt = np.stack(hcqt_list, axis=0) # (H, F, T)
     hcqt = np.transpose(hcqt, (0, 2, 1)) # (H, T, F)
@@ -88,12 +93,23 @@ def n_bins_from_octaves(n_octaves, bins_per_octave):
     return n_octaves * bins_per_octave
 
 def load_f0_file(path):
-    """Loads F0 file. Column 0: time, Column 2: F0 (Hz). 0 means unvoiced."""
+    """Loads F0 file. Column 0: time, Column 1: F0 (Hz). 0 means unvoiced."""
     if not os.path.exists(path):
         return None, None
-    data = np.loadtxt(path)
+    try:
+        # Load CSV, delimiter is comma
+        data = np.loadtxt(path, delimiter=',')
+    except ValueError:
+        # Fallback for irregular files or headers if any (though inspection showed none)
+        # Maybe use pandas or skip
+        return None, None
+        
+    if data.ndim == 1:
+        # handle single line case or empty
+        data = data.reshape(-1, 2)
+        
     times = data[:, 0]
-    f0_hz = data[:, 2]
+    f0_hz = data[:, 1]
     return times, f0_hz
 
 def f0_to_salience(f0_times, f0_hz, freqs_hz, frame_times, sigma_cents=25.0):
@@ -167,16 +183,38 @@ class MedleyPitchDataset(Dataset):
         self.n_time_frames = n_time_frames
         
         # Find all paired wav and f0 files
-        wav_files = sorted(glob.glob(os.path.join(data_dir, "*.wav")))
+        # Find all paired wav and f0 files in the likely structure
+        # Structure: Data/Training_Validation/MedleyDB-Pitch/audio/*.wav
+        #            Data/Training_Validation/MedleyDB-Pitch/pitch/*.csv
+        
+        # We search recursively just in case or assume fixed structure
+        # Let's support the passed data_dir being the root containing 'audio' and 'pitch' folders
+        
+        search_path = os.path.join(data_dir, "**", "*.wav")
+        wav_files = sorted(glob.glob(search_path, recursive=True))
+        
         self.tracks = []
         
         for wav_path in wav_files:
             basename = os.path.splitext(os.path.basename(wav_path))[0]
-            # Try to find matching f0 file. The naming convention in the folder provided:
-            # 01-D_AMairena.wav -> 01-D_AMairena.f0.Corrected.txt
-            f0_path = os.path.join(data_dir, basename + ".f0.Corrected.txt")
+            
+            # Try to resolve pitch file
+            # Strategy: look for 'pitch' directory parallel to 'audio' dir of the wav file
+            parent_dir = os.path.dirname(wav_path) # .../audio
+            if os.path.basename(parent_dir) == 'audio':
+                grandparent = os.path.dirname(parent_dir)
+                pitch_dir = os.path.join(grandparent, 'pitch')
+                f0_path = os.path.join(pitch_dir, basename + ".csv")
+            else:
+                # Fallback: maybe they are in the same dir? (Old format)
+                # Or try to find it by name in the whole data_dir (slow but robust)
+                f0_path = os.path.join(parent_dir, basename + ".csv")
+                
             if os.path.exists(f0_path):
                 self.tracks.append({'wav': wav_path, 'f0': f0_path, 'name': basename})
+            else:
+                # Check for old format .txt just in case? Or skip.
+                pass
         
         # Shuffle and split
         random.seed(seed)
@@ -258,7 +296,8 @@ class MedleyPitchDataset(Dataset):
 
 if __name__ == "__main__":
     # Test block
-    data_dir = "trainData"
+    # Test block
+    data_dir = r"c:\Users\ryanb\OneDrive\Documents\MyProjects\MyPythonProjects\AudioContentAnalysis\SalienceF0\Data\Training_Validation\MedleyDB-Pitch"
     if os.path.exists(data_dir):
         ds = MedleyPitchDataset(data_dir, split='train')
         print(f"Dataset size: {len(ds)}")
